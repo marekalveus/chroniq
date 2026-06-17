@@ -458,12 +458,15 @@ export default function WorkerPage() {
           )}
         </div>
       </div>
-      <Link
-        href="/worker/password"
-        className="fixed bottom-6 right-6 z-50 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur hover:bg-white/20"
-      >
-        Muuda parool
-      </Link>
+
+      <div className="fixed bottom-4 left-4 z-30">
+        <Link
+          href="/worker/password"
+          className="rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur hover:bg-white/20"
+        >
+          Muuda parool
+        </Link>
+      </div>
     </main>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/src/lib/supabase";
 
 type Profile = { id: string; full_name: string; role?: string | null };
@@ -45,6 +46,11 @@ export default function WorkerPage() {
   useEffect(() => {
     load();
   }, []);
+
+  async function logout() {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
 
   async function load() {
     const { data: userData } = await supabase.auth.getUser();
@@ -217,14 +223,24 @@ export default function WorkerPage() {
         <div className="mt-4 flex items-center justify-between gap-4">
           <h1 className="text-3xl font-bold">LinkPoint WorkTime</h1>
 
-          {profile?.role === "admin" && (
-            <a
-              href="/"
-              className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-white/20"
+          <div className="flex gap-2">
+            {profile?.role === "admin" && (
+              <Link
+                href="/"
+                className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600"
+              >
+                Admin
+              </Link>
+            )}
+
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"
             >
-              Admin
-            </a>
-          )}
+              Logi välja
+            </button>
+          </div>
         </div>
 
         <p className="mt-2 text-white/50">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabaseAdmin } from "@/src/lib/supabaseAdmin";
-import LiveMap from "@/components/LiveMap";
+import LiveMapClient from "@/components/LiveMapClient";
 
 export default async function MapPage() {
   const { data: sessions } = await supabaseAdmin
@@ -42,7 +42,7 @@ export default async function MapPage() {
         </div>
       </div>
 
-      <LiveMap sessions={activeSessions as any} />
+      <LiveMapClient sessions={activeSessions as any} />
 
       <section className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
         <h2 className="mb-4 text-2xl font-semibold">Praegu tööl</h2>

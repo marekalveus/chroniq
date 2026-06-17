@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/src/lib/supabaseAdmin";
-import ObjectMapPicker from "@/components/ObjectMapPicker";
+import ObjectMapPickerClient from "@/components/ObjectMapPickerClient";
 import BusinessSearchInput from "@/components/BusinessSearchInput";
 
 async function createObject(formData: FormData) {
@@ -53,7 +53,7 @@ export default function NewObjectPage() {
         <input name="name" placeholder="Objekti nimi" required className={inputClass} />
         <BusinessSearchInput />
 
-        <ObjectMapPicker />
+        <ObjectMapPickerClient />
 
         <select name="object_type" className={inputClass} defaultValue="regular">
           <option value="regular">Tava objekt</option>

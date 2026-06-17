@@ -233,6 +233,13 @@ export default function WorkerPage() {
               </Link>
             )}
 
+            <Link
+              href="/worker/password"
+              className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20"
+            >
+              Muuda parool
+            </Link>
+
             <button
               type="button"
               onClick={logout}

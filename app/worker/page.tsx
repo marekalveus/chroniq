@@ -233,13 +233,6 @@ export default function WorkerPage() {
               </Link>
             )}
 
-            <Link
-              href="/worker/password"
-              className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20"
-            >
-              Muuda parool
-            </Link>
-
             <button
               type="button"
               onClick={logout}
@@ -465,6 +458,12 @@ export default function WorkerPage() {
           )}
         </div>
       </div>
+      <Link
+        href="/worker/password"
+        className="fixed bottom-6 right-6 z-50 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur hover:bg-white/20"
+      >
+        Muuda parool
+      </Link>
     </main>
   );
 }

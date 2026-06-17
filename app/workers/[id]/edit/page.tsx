@@ -108,6 +108,9 @@ export default async function EditWorkerPage({
     );
   }
 
+  const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(id);
+  const workerEmail = authUser.user?.email ?? "";
+
   const save = updateWorker.bind(null, id);
   const resetPassword = sendPasswordReset.bind(null, id);
 
@@ -127,6 +130,17 @@ export default async function EditWorkerPage({
           required
           className={inputClass}
         />
+
+        <div>
+          <label className="mb-2 block text-sm text-white/60">
+            E-post / kasutajanimi
+          </label>
+          <input
+            value={workerEmail}
+            readOnly
+            className={`${inputClass} opacity-70`}
+          />
+        </div>
 
         <input
           name="phone"

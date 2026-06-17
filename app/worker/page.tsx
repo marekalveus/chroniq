@@ -98,7 +98,8 @@ export default function WorkerPage() {
     return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: true,
-        timeout: 15000,
+        timeout: 30000,
+        maximumAge: 10000,
       });
     });
   }
@@ -150,7 +151,9 @@ export default function WorkerPage() {
       setStatus("🟢 Tegevus alustatud");
       await load();
     } catch (error: any) {
-      setStatus("GPS viga: " + error.message);
+      setStatus(
+        "GPS viga. Kontrolli, et telefonis oleks asukoht lubatud ja brauseril oleks luba asukohta kasutada. Ava vajadusel telefonis Settings → Browser → Location → Allow."
+      );
     }
   }
 
@@ -186,7 +189,9 @@ export default function WorkerPage() {
       setStatus("✅ Tegevus lõpetatud");
       await load();
     } catch (error: any) {
-      setStatus("GPS viga: " + error.message);
+      setStatus(
+        "GPS viga. Kontrolli, et telefonis oleks asukoht lubatud ja brauseril oleks luba asukohta kasutada. Ava vajadusel telefonis Settings → Browser → Location → Allow."
+      );
     }
   }
 

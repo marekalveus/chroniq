@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/src/lib/supabase";
 
-type Profile = { id: string; full_name: string };
+type Profile = { id: string; full_name: string; role?: string | null };
 type ObjectRow = { id: string; name: string };
 type VehicleRow = { id: string; name: string; registration_number: string | null };
 
@@ -56,7 +56,7 @@ export default function WorkerPage() {
 
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("id, full_name")
+      .select("id, full_name, role")
       .eq("id", userData.user.id)
       .single();
 
@@ -214,7 +214,18 @@ export default function WorkerPage() {
   return (
     <main className="min-h-screen bg-[#050807] p-6 text-white">
       <div className="mx-auto max-w-xl">
-        <h1 className="mt-4 text-3xl font-bold">LinkPoint WorkTime</h1>
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <h1 className="text-3xl font-bold">LinkPoint WorkTime</h1>
+
+          {profile?.role === "admin" && (
+            <a
+              href="/"
+              className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-white/20"
+            >
+              Admin
+            </a>
+          )}
+        </div>
 
         <p className="mt-2 text-white/50">
           Tere, {profile?.full_name ?? "töötaja"}

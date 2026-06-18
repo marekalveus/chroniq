@@ -3,25 +3,38 @@ import { supabaseAdmin } from "@/src/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-function hoursOf(session: any) {
+function minutesOf(session: any) {
   if (!session.start_time || !session.end_time) return 0;
   const start = new Date(session.start_time).getTime();
   const end = new Date(session.end_time).getTime();
-  return Math.max(0, (end - start) / 1000 / 60 / 60);
+  return Math.max(0, Math.round((end - start) / 1000 / 60));
 }
 
 function formatTime(value: string | null) {
-  if (!value) return "-";
+  if (!value) return "käib";
   return new Date(value).toLocaleTimeString("et-EE", {
     hour: "2-digit",
     minute: "2-digit",
   });
 }
 
+function formatDuration(minutes: number, isActive: boolean) {
+  if (isActive) return "käib";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  return `${h}h ${String(m).padStart(2, "0")}min`;
+}
+
 function typeLabel(type: string) {
   if (type === "travel_to") return "Sõit objektile";
   if (type === "travel_from") return "Sõit objektilt";
   return "Töö objektil";
+}
+
+function placeLabel(s: any) {
+  if (s.session_type === "work") return s.objects?.name ?? "-";
+  return `${s.travel_from ?? "-"} → ${s.travel_to ?? "-"}`;
 }
 
 export default async function DailyReportPage({
@@ -32,8 +45,7 @@ export default async function DailyReportPage({
   const params = await searchParams;
 
   const today = new Date();
-  const selectedDate =
-    params.date ?? today.toISOString().slice(0, 10);
+  const selectedDate = params.date ?? today.toISOString().slice(0, 10);
 
   const start = new Date(`${selectedDate}T00:00:00`);
   const end = new Date(`${selectedDate}T23:59:59`);
@@ -58,24 +70,18 @@ export default async function DailyReportPage({
     .lte("start_time", end.toISOString())
     .order("start_time", { ascending: true });
 
-  if (selectedWorker) {
-    query = query.eq("worker_id", selectedWorker);
-  }
+  if (selectedWorker) query = query.eq("worker_id", selectedWorker);
 
   const { data: sessions } = await query;
-
   const rows = sessions ?? [];
 
-  const totalHours = rows.reduce((sum, s) => sum + hoursOf(s), 0);
-  const totalAmount = rows.reduce(
-    (sum, s) => sum + hoursOf(s) * Number(s.hourly_rate_snapshot ?? 0),
-    0
-  );
-  const totalKm = rows.reduce((sum, s) => sum + Number(s.driven_km ?? 0), 0);
-  const totalKmComp = rows.reduce(
-    (sum, s) => sum + Number(s.km_compensation ?? 0),
-    0
-  );
+  const groups = new Map<string, any[]>();
+
+  for (const row of rows) {
+    const name = row.profiles?.full_name ?? "Töötaja";
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name)?.push(row);
+  }
 
   return (
     <main className="min-h-screen bg-[#050807] p-10 text-white">
@@ -85,7 +91,7 @@ export default async function DailyReportPage({
 
       <h1 className="mt-4 text-4xl font-bold">Päeva tööaja arvestus</h1>
       <p className="mt-2 text-white/50">
-        Päeva lõikes töötaja töö, sõidud, tunnid, km ja summa.
+        Selge ülevaade: kes kus oli, mis kellast mis kellani ja kui kaua.
       </p>
 
       <form className="mt-6 flex flex-wrap gap-3" action="/reports/daily">
@@ -114,117 +120,100 @@ export default async function DailyReportPage({
         </button>
       </form>
 
-      <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-4">
-        <Info title="Tunde kokku" value={`${totalHours.toFixed(2)} h`} />
-        <Info title="Töötasu" value={`${totalAmount.toFixed(2)} €`} />
-        <Info title="Km kokku" value={`${totalKm.toFixed(1)} km`} />
-        <Info title="Km komp" value={`${totalKmComp.toFixed(2)} €`} />
-      </div>
+      <div className="mt-8 space-y-8">
+        {rows.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-white/50">
+            Sellel päeval tööaegu ei ole.
+          </div>
+        ) : (
+          Array.from(groups.entries()).map(([workerName, items]) => {
+            const totalMinutes = items.reduce(
+              (sum, s) => sum + minutesOf(s),
+              0
+            );
 
-      <div className="mt-8 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03]">
-        <table className="w-full min-w-[1500px] border-collapse text-left text-sm">
-          <thead className="bg-white/[0.04] text-white/60">
-            <tr>
-              <th className="px-4 py-3">Töötaja</th>
-              <th className="px-4 py-3">Tegevus</th>
-              <th className="px-4 py-3">Objekt / marsruut</th>
-              <th className="px-4 py-3">Algus</th>
-              <th className="px-4 py-3">Lõpp</th>
-              <th className="px-4 py-3">Tunde</th>
-              <th className="px-4 py-3">Tüüp</th>
-              <th className="px-4 py-3">Hind</th>
-              <th className="px-4 py-3">Summa</th>
-              <th className="px-4 py-3">Auto</th>
-              <th className="px-4 py-3">Odo km</th>
-              <th className="px-4 py-3">GPS km</th>
-              <th className="px-4 py-3">Km komp</th>
-            </tr>
-          </thead>
+            return (
+              <section
+                key={workerName}
+                className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]"
+              >
+                <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.04] px-5 py-4">
+                  <div className="text-xl font-bold text-emerald-300">
+                    👷 {workerName}
+                  </div>
+                  <div className="text-sm text-white/60">
+                    Kokku:{" "}
+                    <span className="font-semibold text-white">
+                      {formatDuration(totalMinutes, false)}
+                    </span>
+                  </div>
+                </div>
 
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={13} className="px-4 py-6 text-white/50">
-                  Sellel päeval tööaegu ei ole.
-                </td>
-              </tr>
-            ) : (
-              rows.map((s: any) => {
-                const h = hoursOf(s);
-                const rate = Number(s.hourly_rate_snapshot ?? 0);
-                const amount = h * rate;
+                <div className="divide-y divide-white/10">
+                  {items.map((s: any) => {
+                    const active = !s.end_time;
+                    const minutes = minutesOf(s);
 
-                return (
-                  <tr key={s.id} className="border-t border-white/10">
-                    <td className="px-4 py-4 font-medium text-emerald-300">
-                      👷 {s.profiles?.full_name ?? "-"}
-                    </td>
+                    return (
+                      <div
+                        key={s.id}
+                        className="grid grid-cols-1 gap-3 px-5 py-4 md:grid-cols-[150px_170px_1fr_120px]"
+                      >
+                        <div>
+                          <div className="text-xs uppercase tracking-wide text-white/40">
+                            Aeg
+                          </div>
+                          <div className="mt-1 text-lg font-semibold">
+                            {formatTime(s.start_time)} – {formatTime(s.end_time)}
+                          </div>
+                        </div>
 
-                    <td className="px-4 py-4">{typeLabel(s.session_type)}</td>
+                        <div>
+                          <div className="text-xs uppercase tracking-wide text-white/40">
+                            Tegevus
+                          </div>
+                          <div className="mt-1">
+                            {s.session_type === "work" ? "🏗 " : "🚗 "}
+                            {typeLabel(s.session_type)}
+                          </div>
+                        </div>
 
-                    <td className="px-4 py-4">
-                      {s.session_type === "work"
-                        ? `🏗 ${s.objects?.name ?? "-"}`
-                        : `🚗 ${s.travel_from ?? "-"} → ${
-                            s.travel_to ?? "-"
-                          }`}
-                    </td>
+                        <div>
+                          <div className="text-xs uppercase tracking-wide text-white/40">
+                            Koht / marsruut
+                          </div>
+                          <div className="mt-1 text-lg">{placeLabel(s)}</div>
+                          {s.vehicles && (
+                            <div className="mt-1 text-sm text-white/50">
+                              Auto: {s.vehicles.name}{" "}
+                              {s.vehicles.registration_number ?? ""}
+                            </div>
+                          )}
+                        </div>
 
-                    <td className="px-4 py-4">{formatTime(s.start_time)}</td>
-                    <td className="px-4 py-4">{formatTime(s.end_time)}</td>
-
-                    <td className="px-4 py-4 font-semibold">
-                      {h.toFixed(2)}
-                    </td>
-
-                    <td className="px-4 py-4">
-                      {s.is_night_work
-                        ? "Öö / topelt"
-                        : s.base_pay_type === "ship" || s.pay_type === "ship"
-                        ? "Laev"
-                        : "Tava"}
-                    </td>
-
-                    <td className="px-4 py-4">{rate.toFixed(2)} €</td>
-                    <td className="px-4 py-4 font-semibold text-emerald-300">
-                      {amount.toFixed(2)} €
-                    </td>
-
-                    <td className="px-4 py-4">
-                      {s.vehicles
-                        ? `${s.vehicles.name ?? ""} ${
-                            s.vehicles.registration_number ?? ""
-                          }`
-                        : "-"}
-                    </td>
-
-                    <td className="px-4 py-4">
-                      {Number(s.driven_km ?? 0).toFixed(1)}
-                    </td>
-
-                    <td className="px-4 py-4">
-                      {Number(s.gps_distance_km ?? 0).toFixed(2)}
-                    </td>
-
-                    <td className="px-4 py-4">
-                      {Number(s.km_compensation ?? 0).toFixed(2)} €
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                        <div>
+                          <div className="text-xs uppercase tracking-wide text-white/40">
+                            Kestus
+                          </div>
+                          <div
+                            className={
+                              active
+                                ? "mt-1 font-bold text-emerald-300"
+                                : "mt-1 text-lg font-bold"
+                            }
+                          >
+                            {formatDuration(minutes, active)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })
+        )}
       </div>
     </main>
-  );
-}
-
-function Info({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-      <div className="text-sm text-white/50">{title}</div>
-      <div className="mt-1 text-2xl font-bold text-emerald-300">{value}</div>
-    </div>
   );
 }
